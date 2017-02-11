@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 
 class Utils:
     def __init__(self):
-        print("init")
+        self.xm_per_pixel = 3.7/700
+        self.ym_per_pixel = 30/720
+        self.ret, self.mtx, self.dist, self.rvecs, self.tvecs = self.calibrate_camera()
 
     ### Calibrating the camera using chessboard images
     @staticmethod
@@ -92,8 +94,7 @@ class Utils:
 
     ### Create a method to undistort
     # not including src and dst points since they are going to remain fixed based on where the camera is positioned and the image
-    @staticmethod
-    def warp(img, mtx, dist):
+    def warp(self, img, inverse=False):
 
         # TODO: might have to play with these
         # keeping these as tight to the lines as possible because it pulls in a good amount in the surrounding part outside the lines
@@ -115,7 +116,10 @@ class Utils:
         # flip the image shape for warpPerspective
         img_size = (img.shape[1], img.shape[0])
 
-        M = cv2.getPerspectiveTransform(src, dst)
+        if inverse:
+            M = cv2.getPerspectiveTransform(dst, src)
+        else:
+            M = cv2.getPerspectiveTransform(src, dst)
 
         warped = cv2.warpPerspective(img, M, img_size, flags=cv2.INTER_LINEAR)
 
@@ -130,23 +134,23 @@ class Utils:
         #    counter += 1
         return warped, M
 
-    @staticmethod
-    def extract_polynomial(nonzerox, nonzeroy, left_lane_indices, right_lane_indices):
+    def extract_polynomial(self, img, left_lane_indices, right_lane_indices, in_meters=True):
+        nonzero = img.nonzero()
+        nonzeroy = nonzero[0]
+        nonzerox = nonzero[1]
+
         # extract left and right pixel positions
         leftx = nonzerox[left_lane_indices]
         lefty = nonzeroy[left_lane_indices]
         rightx = nonzerox[right_lane_indices]
         righty = nonzeroy[right_lane_indices]
 
-        ym_per_pixel = 30/720
-        xm_per_pixel = 3.7/700
-
-        left_fit = np.polyfit(lefty * ym_per_pixel, leftx * xm_per_pixel, 2)
-        right_fit = np.polyfit(righty * ym_per_pixel, rightx * xm_per_pixel, 2)
-
-        # # for debugging
-        # left_fit = np.polyfit(lefty, leftx, 2)
-        # right_fit = np.polyfit(righty, rightx, 2)
+        if in_meters:
+            left_fit = np.polyfit(lefty * self.ym_per_pixel, leftx * self.xm_per_pixel, 2)
+            right_fit = np.polyfit(righty * self.ym_per_pixel, rightx * self.xm_per_pixel, 2)
+        else:
+            left_fit = np.polyfit(lefty, leftx, 2)
+            right_fit = np.polyfit(righty, rightx, 2)
 
         return left_fit, right_fit
 
@@ -162,7 +166,7 @@ class Utils:
         left_lane_indices = ((nonzerox > (left_polynomial - margin)) & (nonzerox < (left_polynomial + margin)))
         right_lane_indices = ((nonzerox > (right_polynomial - margin)) & (nonzerox < (right_polynomial + margin)))
 
-        new_left_fit, new_right_fit = self.extract_polynomial(nonzerox, nonzeroy, left_lane_indices, right_lane_indices)
+        # new_left_fit, new_right_fit = self.extract_polynomial(nonzerox, nonzeroy, left_lane_indices, right_lane_indices)
 
         # # Generate x and y values for plotting
         # ploty = np.linspace(0, img.shape[0] - 1, img.shape[0])
@@ -196,14 +200,14 @@ class Utils:
         # plt.ylim(720, 0)
         # plt.show()
 
-        return new_left_fit, new_right_fit
+        return left_lane_indices, right_lane_indices
 
     # Find the lanes by using rectangles to search and then fit with polynomial
     def find_lanes_with_rectangle(self, img, margin):
         # histogram to figure out where the peaks are and hence the lane lines
         histogram = np.sum(img[img.shape[0]/2:, :], axis=0)
 
-        # #to visualize
+        #to visualize
         # out_img = np.dstack((img, img, img))*255
 
         #figure out the middle of the lane (aka where the camera is)
@@ -266,8 +270,8 @@ class Utils:
         left_lane_indices = np.concatenate(left_lane_indices)
         right_lane_indices = np.concatenate(right_lane_indices)
 
-        left_fit, right_fit = self.extract_polynomial(nonzerox, nonzeroy, left_lane_indices, right_lane_indices)
-
+        # left_fit, right_fit = self.extract_polynomial(img, left_lane_indices, right_lane_indices, False)
+        #
         # # Generate x and y values for plotting
         # ploty = np.linspace(0, img.shape[0]-1, img.shape[0] )
         # left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
@@ -282,18 +286,84 @@ class Utils:
         # plt.ylim(720, 0)
         # plt.show()
 
-        return left_fit, right_fit
+        return left_lane_indices, right_lane_indices
 
-    @staticmethod
-    def radius_of_curve(img, left_fit, right_fit):
-        # Define conversions in x and y from pixels space to meters
-        ym_per_pix = 30/720 # meters per pixel in y dimension
-
+    def radius_of_curve(self, img, left_indices, right_indices):
         ymax = img.shape[0]
 
+        left_fit, right_fit = self.extract_polynomial(img, left_indices, right_indices)
+
         # Calculate the new radii of curvature
-        left_curverad = ((1 + (2*left_fit[0]*ymax*ym_per_pix + left_fit[1])**2)**1.5) / np.absolute(2*left_fit[0])
-        right_curverad = ((1 + (2*right_fit[0]*ymax*ym_per_pix + right_fit[1])**2)**1.5) / np.absolute(2*right_fit[0])
+        left_curverad = ((1 + (2*left_fit[0]*ymax*self.ym_per_pixel + left_fit[1])**2)**1.5) / np.absolute(2*left_fit[0])
+        right_curverad = ((1 + (2*right_fit[0]*ymax*self.ym_per_pixel + right_fit[1])**2)**1.5) / np.absolute(2*right_fit[0])
         # Now our radius of curvature is in meters
         print(left_curverad, 'm', right_curverad, 'm')
-        # Example values: 632.1 m    626.2 m
+
+    def calculate_distance_to_center(self, img, left_indices, right_indices):
+        ymax = img.shape[0]
+        xmidpoint = img.shape[1]/2
+        left_fit, right_fit = self.extract_polynomial(img, left_indices, right_indices, False)
+
+        left_polynomial = left_fit[0] * (ymax ** 2) + left_fit[1] * ymax + left_fit[2]
+        right_polynomial = right_fit[0] * (ymax ** 2) + right_fit[1] * ymax + right_fit[2]
+
+        midpoint = left_polynomial + right_polynomial / 2
+        offset = abs(xmidpoint - midpoint) * self.xm_per_pixel
+        print('offset from center: ', offset, 'm')
+
+    def pipeline(self, image):
+        # undistort image
+        undistorted_img = cv2.undistort(image, self.mtx, self.dist, None, self.mtx)
+
+        # perform color and gradient thresholding
+        binary_img = self.create_threshold_binary(undistorted_img)
+
+        # warp image perspective
+        top_down, perspective_M = self.warp(binary_img)
+        inverse_img, Minv = self.warp(binary_img, True)
+
+        # window margin
+        margin = 100
+
+        # Fit a second order polynomial to each
+        left_indices, right_indices = self.find_lanes_with_rectangle(top_down, margin)
+
+        # left_fit, right_fit = utils.find_lanes_with_fit(top_down, left_fit, right_fit, margin)
+
+        # Fit a second order polynomial to each
+        # with warnings.catch_warnings():
+        #     try:
+        #         left_fit, right_fit = utils.find_lanes_with_fit(img, left_fit, right_fit, margin)
+        #     except (np.RankWarning, UnboundLocalError):
+        #         left_fit, right_fit = utils.find_lanes_with_rectangle(img, margin)
+
+        self.radius_of_curve(top_down, left_indices, right_indices)
+
+        self.calculate_distance_to_center(top_down, left_indices, right_indices)
+
+        left_fit, right_fit = self.extract_polynomial(top_down, left_indices, right_indices, False)
+
+        # Generate x and y values for plotting
+        ploty = np.linspace(0, image.shape[0]-1, image.shape[0])
+        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+        # Create an image to draw the lines on
+        warp_zero = np.zeros_like(top_down).astype(np.uint8)
+        color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+
+        # Recast the x and y points into usable format for cv2.fillPoly()
+        pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+        pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+        pts = np.hstack((pts_left, pts_right))
+
+        # Draw the lane onto the warped blank image
+        cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
+
+        # Warp the blank back to original image space using inverse perspective matrix (Minv)
+        newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0]))
+        # Combine the result with the original image
+        # undistorted_img = cv2.cvtColor(undistorted_img, cv2.COLOR_BGR2RGB)
+        result = cv2.addWeighted(undistorted_img, 1, newwarp, 0.3, 0)
+
+        return result
