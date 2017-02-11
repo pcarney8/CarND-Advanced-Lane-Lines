@@ -4,11 +4,16 @@ import cv2
 import glob
 import matplotlib.pyplot as plt
 
+from Line import Line
+
+
 class Utils:
     def __init__(self):
         self.xm_per_pixel = 3.7/700
         self.ym_per_pixel = 30/720
         self.ret, self.mtx, self.dist, self.rvecs, self.tvecs = self.calibrate_camera()
+        self.right_lane = Line()
+        self.left_lane = Line()
 
     ### Calibrating the camera using chessboard images
     @staticmethod
@@ -95,8 +100,6 @@ class Utils:
     ### Create a method to undistort
     # not including src and dst points since they are going to remain fixed based on where the camera is positioned and the image
     def warp(self, img, inverse=False):
-
-        # TODO: might have to play with these
         # keeping these as tight to the lines as possible because it pulls in a good amount in the surrounding part outside the lines
         src = np.float32([
             [236, 673],
@@ -307,7 +310,7 @@ class Utils:
         left_polynomial = left_fit[0] * (ymax ** 2) + left_fit[1] * ymax + left_fit[2]
         right_polynomial = right_fit[0] * (ymax ** 2) + right_fit[1] * ymax + right_fit[2]
 
-        midpoint = left_polynomial + right_polynomial / 2
+        midpoint = (left_polynomial + right_polynomial) / 2
         offset = abs(xmidpoint - midpoint) * self.xm_per_pixel
         print('offset from center: ', offset, 'm')
 
@@ -338,7 +341,6 @@ class Utils:
         #         left_fit, right_fit = utils.find_lanes_with_rectangle(img, margin)
 
         self.radius_of_curve(top_down, left_indices, right_indices)
-
         self.calculate_distance_to_center(top_down, left_indices, right_indices)
 
         left_fit, right_fit = self.extract_polynomial(top_down, left_indices, right_indices, False)
@@ -363,7 +365,8 @@ class Utils:
         # Warp the blank back to original image space using inverse perspective matrix (Minv)
         newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0]))
         # Combine the result with the original image
-        # undistorted_img = cv2.cvtColor(undistorted_img, cv2.COLOR_BGR2RGB)
+
+        # TODO: should this be the undistorted image or the raw one?
         result = cv2.addWeighted(undistorted_img, 1, newwarp, 0.3, 0)
 
         return result
