@@ -4,13 +4,13 @@ import cv2
 import glob
 import matplotlib.pyplot as plt
 
-
 class Utils:
     def __init__(self):
         print("init")
 
     ### Calibrating the camera using chessboard images
-    def calibrate_camera(*args):
+    @staticmethod
+    def calibrate_camera():
         # The number of x corners in our calibration checkerboard
         nx = 9
         # The number of y corners in our calibration checkerboard
@@ -58,7 +58,8 @@ class Utils:
         return cv2.calibrateCamera(objpoints, imgpoints, gray_shape, None, None)
 
     ### Create a thresholded binary image from the warped on.
-    def create_threshold_binary(self, img):
+    @staticmethod
+    def create_threshold_binary(img):
         # convert img to HLS colorspace
         hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
         # take the S channel of HLS
@@ -91,7 +92,8 @@ class Utils:
 
     ### Create a method to undistort
     # not including src and dst points since they are going to remain fixed based on where the camera is positioned and the image
-    def warp(self, img, mtx, dist):
+    @staticmethod
+    def warp(img, mtx, dist):
         # keeping these as tight to the lines as possible because it pulls in a good amount in the surrounding part outside the lines
         src = np.float32([
             [236, 673],
@@ -126,15 +128,23 @@ class Utils:
         #    counter += 1
         return warped, M
 
-    def extract_polynomial(self, nonzerox, nonzeroy, left_lane_indices, right_lane_indices):
+    @staticmethod
+    def extract_polynomial(nonzerox, nonzeroy, left_lane_indices, right_lane_indices):
         # extract left and right pixel positions
         leftx = nonzerox[left_lane_indices]
         lefty = nonzeroy[left_lane_indices]
         rightx = nonzerox[right_lane_indices]
         righty = nonzeroy[right_lane_indices]
 
-        left_fit = np.polyfit(lefty, leftx, 2)
-        right_fit = np.polyfit(righty, rightx, 2)
+        ym_per_pixel = 30/720
+        xm_per_pixel = 3.7/700
+
+        left_fit = np.polyfit(lefty * ym_per_pixel, leftx * xm_per_pixel, 2)
+        right_fit = np.polyfit(righty * ym_per_pixel, rightx * xm_per_pixel, 2)
+
+        # # for debugging
+        # left_fit = np.polyfit(lefty, leftx, 2)
+        # right_fit = np.polyfit(righty, rightx, 2)
 
         return left_fit, right_fit
 
@@ -191,8 +201,8 @@ class Utils:
         # histogram to figure out where the peaks are and hence the lane lines
         histogram = np.sum(img[img.shape[0]/2:, :], axis=0)
 
-        #to visualize
-        out_img = np.dstack((img, img, img))*255
+        # #to visualize
+        # out_img = np.dstack((img, img, img))*255
 
         #figure out the middle of the lane (aka where the camera is)
         midpoint = np.int(histogram.shape[0]/2)
@@ -256,7 +266,7 @@ class Utils:
 
         left_fit, right_fit = self.extract_polynomial(nonzerox, nonzeroy, left_lane_indices, right_lane_indices)
 
-        # Generate x and y values for plotting
+        # # Generate x and y values for plotting
         # ploty = np.linspace(0, img.shape[0]-1, img.shape[0] )
         # left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
         # right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
@@ -271,3 +281,17 @@ class Utils:
         # plt.show()
 
         return left_fit, right_fit
+
+    @staticmethod
+    def radius_of_curve(img, left_fit, right_fit):
+        # Define conversions in x and y from pixels space to meters
+        ym_per_pix = 30/720 # meters per pixel in y dimension
+
+        ymax = img.shape[0]
+
+        # Calculate the new radii of curvature
+        left_curverad = ((1 + (2*left_fit[0]*ymax*ym_per_pix + left_fit[1])**2)**1.5) / np.absolute(2*left_fit[0])
+        right_curverad = ((1 + (2*right_fit[0]*ymax*ym_per_pix + right_fit[1])**2)**1.5) / np.absolute(2*right_fit[0])
+        # Now our radius of curvature is in meters
+        print(left_curverad, 'm', right_curverad, 'm')
+        # Example values: 632.1 m    626.2 m
