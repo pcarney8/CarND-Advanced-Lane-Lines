@@ -12,8 +12,6 @@ class Utils:
         self.xm_per_pixel = 3.7/700
         self.ym_per_pixel = 30/720
         self.ret, self.mtx, self.dist, self.rvecs, self.tvecs = self.calibrate_camera()
-        self.right_lane = Line()
-        self.left_lane = Line()
 
     ### Calibrating the camera using chessboard images
     @staticmethod
@@ -296,11 +294,11 @@ class Utils:
 
         left_fit, right_fit = self.extract_polynomial(img, left_indices, right_indices)
 
-        # Calculate the new radii of curvature
+        # Calculate the new radii of curvature, in meters
         left_curverad = ((1 + (2*left_fit[0]*ymax*self.ym_per_pixel + left_fit[1])**2)**1.5) / np.absolute(2*left_fit[0])
         right_curverad = ((1 + (2*right_fit[0]*ymax*self.ym_per_pixel + right_fit[1])**2)**1.5) / np.absolute(2*right_fit[0])
-        # Now our radius of curvature is in meters
-        print(left_curverad, 'm', right_curverad, 'm')
+
+        return left_curverad, right_curverad
 
     def calculate_distance_to_center(self, img, left_indices, right_indices):
         ymax = img.shape[0]
@@ -312,61 +310,5 @@ class Utils:
 
         midpoint = (left_polynomial + right_polynomial) / 2
         offset = abs(xmidpoint - midpoint) * self.xm_per_pixel
-        print('offset from center: ', offset, 'm')
 
-    def pipeline(self, image):
-        # undistort image
-        undistorted_img = cv2.undistort(image, self.mtx, self.dist, None, self.mtx)
-
-        # perform color and gradient thresholding
-        binary_img = self.create_threshold_binary(undistorted_img)
-
-        # warp image perspective
-        top_down, perspective_M = self.warp(binary_img)
-        inverse_img, Minv = self.warp(binary_img, True)
-
-        # window margin
-        margin = 100
-
-        # Fit a second order polynomial to each
-        left_indices, right_indices = self.find_lanes_with_rectangle(top_down, margin)
-
-        # left_fit, right_fit = utils.find_lanes_with_fit(top_down, left_fit, right_fit, margin)
-
-        # Fit a second order polynomial to each
-        # with warnings.catch_warnings():
-        #     try:
-        #         left_fit, right_fit = utils.find_lanes_with_fit(img, left_fit, right_fit, margin)
-        #     except (np.RankWarning, UnboundLocalError):
-        #         left_fit, right_fit = utils.find_lanes_with_rectangle(img, margin)
-
-        self.radius_of_curve(top_down, left_indices, right_indices)
-        self.calculate_distance_to_center(top_down, left_indices, right_indices)
-
-        left_fit, right_fit = self.extract_polynomial(top_down, left_indices, right_indices, False)
-
-        # Generate x and y values for plotting
-        ploty = np.linspace(0, image.shape[0]-1, image.shape[0])
-        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-
-        # Create an image to draw the lines on
-        warp_zero = np.zeros_like(top_down).astype(np.uint8)
-        color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
-
-        # Recast the x and y points into usable format for cv2.fillPoly()
-        pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
-        pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
-        pts = np.hstack((pts_left, pts_right))
-
-        # Draw the lane onto the warped blank image
-        cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
-
-        # Warp the blank back to original image space using inverse perspective matrix (Minv)
-        newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0]))
-        # Combine the result with the original image
-
-        # TODO: should this be the undistorted image or the raw one?
-        result = cv2.addWeighted(undistorted_img, 1, newwarp, 0.3, 0)
-
-        return result
+        return offset
