@@ -64,11 +64,14 @@ class Utils:
 
     ### Create a thresholded binary image from the warped on.
     @staticmethod
-    def create_threshold_binary(img):
+    def create_threshold_binary(img, kernel_size=5):
+        # Apply Gaussian Noise
+        img = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+
         # convert img to HLS colorspace
         hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
         # take the S channel of HLS
-        s_channel = hls[:,:,2]
+        s_channel = hls[:, :, 2]
 
         # convert img to gray colorspace
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -84,7 +87,7 @@ class Utils:
         sxbinary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
 
         # Threshold color channel
-        s_thresh_min = 170
+        s_thresh_min = 150
         s_thresh_max = 255
         s_binary = np.zeros_like(s_channel)
         s_binary[(s_channel >= s_thresh_min) & (s_channel <= s_thresh_max)] = 1
@@ -92,6 +95,15 @@ class Utils:
         #combining the two in black and white
         combined_binary = np.zeros_like(sxbinary)
         combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
+
+        # plt.imshow(sxbinary, cmap='gray')
+        # plt.show()
+        #
+        # plt.imshow(s_binary, cmap='gray')
+        # plt.show()
+        #
+        # plt.imshow(combined_binary, cmap='gray')
+        # plt.show()
 
         return combined_binary
 
@@ -123,6 +135,9 @@ class Utils:
             M = cv2.getPerspectiveTransform(src, dst)
 
         warped = cv2.warpPerspective(img, M, img_size, flags=cv2.INTER_LINEAR)
+
+        # plt.imshow(warped, cmap='gray')
+        # plt.show()
 
         # Save all the warped images, for the writeup
         # test_images = glob.glob('../test_images/test*.jpg')
@@ -312,3 +327,7 @@ class Utils:
         offset = abs(xmidpoint - midpoint) * self.xm_per_pixel
 
         return offset
+
+    def running_mean(x, N):
+        cumsum = np.cumsum(np.insert(x, 0, 0))
+        return (cumsum[N:] - cumsum[:-N]) / N

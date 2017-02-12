@@ -1,15 +1,17 @@
 import numpy as np
-
+import collections
 
 # Define a class to receive the characteristics of each line detection
 class Line:
-    def __init__(self):
+    def __init__(self, n_iterations):
         # was the line detected in the last iteration?
         self.detected = False
         # x values of the last n fits of the line
-        self.recent_xfitted = []
+        self.recent_xfitted = collections.deque(maxlen=n_iterations)
         # average x values of the fitted line over the last n iterations
         self.bestx = None
+        # polynomial values of the last n fits of the line
+        self.recent_poly = collections.deque(maxlen=n_iterations)
         # polynomial coefficients averaged over the last n iterations
         self.best_fit = None
         # polynomial coefficients for the most recent fit
