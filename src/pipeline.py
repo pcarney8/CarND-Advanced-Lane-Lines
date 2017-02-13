@@ -98,8 +98,29 @@ class Pipeline:
             left_line.line_base_pos = offset
             right_line.line_base_pos = offset
 
-            if len(left_line.current_fit) == 0:
-                print('first frame, since current fit is 0')
+            left_line.diffs = np.absolute(left_fit - left_line.current_fit)
+            right_line.diffs = np.absolute(right_fit - right_line.current_fit)
+
+            left_line.current_fit = left_fit
+            right_line.current_fit = right_fit
+
+        elif left_line.allx is None:
+            left_line.recent_xfitted.append(left_fitx)
+            right_line.recent_xfitted.append(right_fitx)
+
+            left_line.recent_poly.append(left_fit)
+            right_line.recent_poly.append(right_fit)
+
+            left_line.allx = left_fitx
+            left_line.ally = ploty
+            right_line.allx = right_fitx
+            right_line.ally = ploty
+
+            left_line.radius_of_curvature = left_radius_curvature
+            right_line.radius_of_curvature = right_radius_curvature
+
+            left_line.line_base_pos = offset
+            right_line.line_base_pos = offset
 
             left_line.diffs = np.absolute(left_fit - left_line.current_fit)
             right_line.diffs = np.absolute(right_fit - right_line.current_fit)

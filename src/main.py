@@ -49,6 +49,9 @@ lost_frame = 0
 counter = 0
 # read video in
 video = cv2.VideoCapture('../project_video.mp4')
+# fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+# out = cv2.VideoWriter('../output_project_video.mp4', fourcc, 20.0, (1280, 720))
+
 while video.isOpened():
     success, image = video.read()
 
@@ -72,6 +75,8 @@ while video.isOpened():
         left_line.detected = False
         right_line.detected = False
 
+    # Write the output
+    # out.write(result)
     # show the frames with the lane marked
     cv2.imshow('frame', result)
 
@@ -79,4 +84,5 @@ while video.isOpened():
         break
 
 video.release()
+out.release()
 cv2.destroyAllWindows()
