@@ -2,9 +2,6 @@
 import numpy as np
 import cv2
 import glob
-import matplotlib.pyplot as plt
-
-from Line import Line
 
 
 class Utils:
@@ -13,7 +10,7 @@ class Utils:
         self.ym_per_pixel = 30/720
         self.ret, self.mtx, self.dist, self.rvecs, self.tvecs = self.calibrate_camera()
 
-    ### Calibrating the camera using chessboard images
+    # Calibrating the camera using chessboard images
     @staticmethod
     def calibrate_camera():
         # The number of x corners in our calibration checkerboard
@@ -48,9 +45,10 @@ class Utils:
                 objpoints.append(objp)
                 imgpoints.append(corners)
 
-                # Draw and display the corners
-                img = cv2.drawChessboardCorners(img, (nx, ny), corners, ret)
+                # Draw and display the corners, used for debugging
+                # img = cv2.drawChessboardCorners(img, (nx, ny), corners, ret)
 
+        # DEBUGGING: for saving the undistorted images
         # Saving the undistorted images, used in write up
         # counter = 1
         # for file in images:
@@ -62,10 +60,10 @@ class Utils:
         # Calibrate the camera with all of the images and return these variables that will be used later on
         return cv2.calibrateCamera(objpoints, imgpoints, gray_shape, None, None)
 
-    ### Create a thresholded binary image from the warped on.
+    # Create a thresholded binary image from the warped on.
     @staticmethod
     def create_threshold_binary(img, kernel_size=5):
-        # Apply Gaussian Noise
+        # Apply Gaussian Noise, to help line recognition
         img = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
 
         # convert img to HLS colorspace
@@ -96,6 +94,7 @@ class Utils:
         combined_binary = np.zeros_like(sxbinary)
         combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
 
+        # DEBUGGING: to verify binary images are correct
         # plt.imshow(sxbinary, cmap='gray')
         # plt.show()
         #
@@ -107,7 +106,7 @@ class Utils:
 
         return combined_binary
 
-    ### Create a method to undistort
+    # Create a method to undistort
     # not including src and dst points since they are going to remain fixed based on where the camera is positioned and the image
     def warp(self, img):
         # flip the image shape for warpPerspective
@@ -130,6 +129,7 @@ class Utils:
 
         warped = cv2.warpPerspective(img, M, img_size, flags=cv2.INTER_LINEAR)
 
+        # DEBUGGING: to verify warped image
         # plt.imshow(warped, cmap='gray')
         # plt.show()
 
@@ -142,9 +142,13 @@ class Utils:
         #    top_down, perspective_M = undistort_and_warp(test_img, mtx, dist)
         #    cv2.imwrite('warped-images/test' + str(counter) + '.jpg', top_down)
         #    counter += 1
+
+        # returning the M inverse because we're using it outside of here, and not the M
         return warped, Minv
 
+    # Extract the polynomial coefficients from an image given line indices, flag to return in meters or not
     def extract_polynomial(self, img, left_lane_indices, right_lane_indices, in_meters=True):
+        # Nonzero pixels from image
         nonzero = img.nonzero()
         nonzeroy = nonzero[0]
         nonzerox = nonzero[1]
@@ -155,6 +159,7 @@ class Utils:
         rightx = nonzerox[right_lane_indices]
         righty = nonzeroy[right_lane_indices]
 
+        # put polynomial in meters, if not pixels
         if in_meters:
             left_fit = np.polyfit(lefty * self.ym_per_pixel, leftx * self.xm_per_pixel, 2)
             right_fit = np.polyfit(righty * self.ym_per_pixel, rightx * self.xm_per_pixel, 2)
@@ -166,16 +171,20 @@ class Utils:
 
     # Find the lane lines with an already existing polynomial
     def find_lanes_with_fit(self, img, left_fit, right_fit, margin):
+        # Nonzero pixels from the image
         nonzero = img.nonzero()
         nonzeroy = nonzero[0]
         nonzerox = nonzero[1]
 
+        # Calculate the left polynomial
         left_polynomial = left_fit[0] * (nonzeroy ** 2) + left_fit[1] * nonzeroy + left_fit[2]
         right_polynomial = right_fit[0] * (nonzeroy ** 2) + right_fit[1] * nonzeroy + right_fit[2]
 
+        # Section off which region
         left_lane_indices = ((nonzerox > (left_polynomial - margin)) & (nonzerox < (left_polynomial + margin)))
         right_lane_indices = ((nonzerox > (right_polynomial - margin)) & (nonzerox < (right_polynomial + margin)))
 
+        # DEBUGGING: to verify the lines have been formed correctly
         # new_left_fit, new_right_fit = self.extract_polynomial(img, left_lane_indices, right_lane_indices, False)
 
         # # Generate x and y values for plotting
@@ -217,7 +226,7 @@ class Utils:
         # histogram to figure out where the peaks are and hence the lane lines
         histogram = np.sum(img[img.shape[0]/2:, :], axis=0)
 
-        #to visualize
+        #to visualize, for debuggins
         # out_img = np.dstack((img, img, img))*255
 
         #figure out the middle of the lane (aka where the camera is)
@@ -226,6 +235,8 @@ class Utils:
         leftx_base = np.argmax(histogram[:midpoint])
         # find the mas of the histogram to the right of the midpoint
         rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+
+        # DEBUGGING: to visualize the histogram
         # print(leftx_base)
         # print(rightx_base)
         # plt.plot(histogram)
@@ -252,6 +263,7 @@ class Utils:
         left_lane_indices = []
         right_lane_indices = []
 
+        # iterate through the windows
         for window in range(nwindows):
             # find the window boundaries
             window_y_low = img.shape[0] - (window+1)*window_height # "low" corresponds to the bottom on the image, which is actually the higher pixel value, so it's window+1
@@ -261,7 +273,7 @@ class Utils:
             window_x_right_low = rightx_current - margin
             window_x_right_high = rightx_current + margin
 
-            #draw the rectangle to visualize
+            # draw the rectangle to visualize, for debugging
             # cv2.rectangle(out_img, (window_x_left_low, window_y_low), (window_x_left_high, window_y_high), (0,255,0), 2)
             # cv2.rectangle(out_img, (window_x_right_low, window_y_low), (window_x_right_high, window_y_high), (0,255,0), 2)
 
@@ -284,6 +296,7 @@ class Utils:
         left_lane_indices = np.concatenate(left_lane_indices)
         right_lane_indices = np.concatenate(right_lane_indices)
 
+        # DEBUGGING: to visualize the rectangular windows and the line that was found
         # left_fit, right_fit = self.extract_polynomial(img, left_lane_indices, right_lane_indices, False)
         #
         # # Generate x and y values for plotting
@@ -302,9 +315,12 @@ class Utils:
 
         return left_lane_indices, right_lane_indices
 
+    # Find the radius of the curve
     def radius_of_curve(self, img, left_indices, right_indices):
+        # Take the bottom of the image
         ymax = img.shape[0]
 
+        # get the polynomial
         left_fit, right_fit = self.extract_polynomial(img, left_indices, right_indices)
 
         # Calculate the new radii of curvature, in meters
@@ -313,15 +329,24 @@ class Utils:
 
         return left_curverad, right_curverad
 
+    # Find the Offset of the vehicle from the center of the lane
     def calculate_distance_to_center(self, img, left_indices, right_indices):
+        # Take the bottome of the image
         ymax = img.shape[0]
+        # Take the middle of the image
         xmidpoint = img.shape[1]/2
+
+        # get the polynomial
         left_fit, right_fit = self.extract_polynomial(img, left_indices, right_indices, False)
 
+        # Calculate the polynomial
         left_polynomial = left_fit[0] * (ymax ** 2) + left_fit[1] * ymax + left_fit[2]
         right_polynomial = right_fit[0] * (ymax ** 2) + right_fit[1] * ymax + right_fit[2]
 
+        # Find the midpoint from the two lines
         midpoint = (left_polynomial + right_polynomial) / 2
+
+        # Calculate the difference between the middle of the camera (car) and the lane center, convert to meters
         offset = abs(xmidpoint - midpoint) * self.xm_per_pixel
 
         return offset
