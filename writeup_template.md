@@ -19,7 +19,7 @@ The goals / steps of this project are the following:
 
 [image1]: ./output_images/undistorted-images/calibration1.jpg "Undistorted"
 [image2]: ./camera_cal/calibration1.jpg "Normal"
-[image3]: ./test_images/test1.jpg "Road Transformed"
+[image3]: ./output_images/undistorted-images/undistorted-road.jpg "Road Transformed"
 [image4]: ./output_images/threshold-images/color_and_gradient_threshold.png "Binary Example"
 [image5]: ./output_images/threshold-images/warped.png "Warp Example"
 [image6]: ./output_images/threshold-images/curve.png "Rectangle Fit Visual"
@@ -40,7 +40,7 @@ The code for this step is contained in a method `calibrate_camera` on lines 15 t
 
 I started by creating the object points, which will be in 3-dimensions (x, y, z) of the chessboard corners. As in the lessons, I am assuming the chessboard is fixed on the (x, y) plane at z=0, and the object points will be the same for all the calibration images.  
 
-From original template: `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
+`objp`, the replicated array of coordinates, and `objpoints` are appended everytime the corners are successfully detected.  `imgpoints` are appended with the (x, y) pixel position of each corner when successful.  This is the same method that we followed during our lesson plans.
 
 I used the `objpoints` and `imgpoints` to compute and return the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I put these in the initialization of the `Utils` class because it made sense to do this only once when the program booted up. If necessary, the camera could be re-calibrated with a direct call to `calibrate_camera` and then setting all of the coefficients. I use the values in line 17 of the `pipeline.py` class when the `cv2.undistort()` function is called. You can see around the corners of the below images where it is undistorted: 
 
