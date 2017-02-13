@@ -25,7 +25,8 @@ The goals / steps of this project are the following:
 [image6]: ./output_images/threshold-images/curve.png "Rectangle Fit Visual"
 [image7]: ./output_images/threshold-images/curve_with_polynomial.png "Poly Fit Visual"
 [image8]: ./output_images/threshold-images/output.jpg "Output"
-[image9]: ./output_images/threshold-images/histogram.png "Histogram"
+[image9]: ./output_images/threshold-images/output-bad-src-dst.jpg "Output"
+[image10]: ./output_images/threshold-images/histogram.png "Histogram"
 [video1]: ./output_project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
@@ -74,7 +75,10 @@ dst = np.float32(
     [(img_size[0] * 3 / 4), 0]])
 
 ```
-I originally tried to put the `src` in front of the car hood and out as far into the distance as possible. This resulted in some very poor radius of curvature and jumpy lanes. After reviewing this template, I decided to switch to what was used here (including the bottom of the image with the hood) and it resulted in a much smoother experience. These are the actual calculated source and destination points:
+I originally tried to put the `src` in front of the car hood and out as far into the distance as possible. This resulted in some very poor radius of curvature and jumpy lanes. Notice the difference between this image and the final output image (at the bottom):
+![alt text][image9]
+
+After reviewing this template, I decided to switch to what was used here (including the bottom of the image with the hood) and it resulted in a much smoother experience. These are the actual calculated source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
