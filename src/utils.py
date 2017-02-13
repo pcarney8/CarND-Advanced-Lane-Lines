@@ -109,30 +109,24 @@ class Utils:
 
     ### Create a method to undistort
     # not including src and dst points since they are going to remain fixed based on where the camera is positioned and the image
-    def warp(self, img, inverse=False):
-        # keeping these as tight to the lines as possible because it pulls in a good amount in the surrounding part outside the lines
-        src = np.float32([
-            [236, 673],
-            [587, 450],
-            [688, 450],
-            [1056, 673]
-        ])
-
-        # make sure this pulls the perspective "apart", it creates the paralell-ness and is really the key here
-        dst = np.float32([
-            [300, 720],
-            [300, 0],
-            [1000, 0],
-            [1000, 720]
-        ])
-
+    def warp(self, img):
         # flip the image shape for warpPerspective
         img_size = (img.shape[1], img.shape[0])
+        # keeping these as tight to the lines as possible because it pulls in a good amount in the surrounding part outside the lines
+        src = np.float32(
+            [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
+             [((img_size[0] / 6) - 10), img_size[1]],
+             [(img_size[0] * 5 / 6) + 60, img_size[1]],
+             [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
+        # make sure this pulls the perspective "apart", it creates the paralell-ness and is really the key here
+        dst = np.float32(
+            [[(img_size[0] / 4), 0],
+             [(img_size[0] / 4), img_size[1]],
+             [(img_size[0] * 3 / 4), img_size[1]],
+             [(img_size[0] * 3 / 4), 0]])
 
-        if inverse:
-            M = cv2.getPerspectiveTransform(dst, src)
-        else:
-            M = cv2.getPerspectiveTransform(src, dst)
+        Minv = cv2.getPerspectiveTransform(dst, src)
+        M = cv2.getPerspectiveTransform(src, dst)
 
         warped = cv2.warpPerspective(img, M, img_size, flags=cv2.INTER_LINEAR)
 
@@ -148,7 +142,7 @@ class Utils:
         #    top_down, perspective_M = undistort_and_warp(test_img, mtx, dist)
         #    cv2.imwrite('warped-images/test' + str(counter) + '.jpg', top_down)
         #    counter += 1
-        return warped, M
+        return warped, Minv
 
     def extract_polynomial(self, img, left_lane_indices, right_lane_indices, in_meters=True):
         nonzero = img.nonzero()
@@ -182,7 +176,7 @@ class Utils:
         left_lane_indices = ((nonzerox > (left_polynomial - margin)) & (nonzerox < (left_polynomial + margin)))
         right_lane_indices = ((nonzerox > (right_polynomial - margin)) & (nonzerox < (right_polynomial + margin)))
 
-        # new_left_fit, new_right_fit = self.extract_polynomial(nonzerox, nonzeroy, left_lane_indices, right_lane_indices)
+        # new_left_fit, new_right_fit = self.extract_polynomial(img, left_lane_indices, right_lane_indices, False)
 
         # # Generate x and y values for plotting
         # ploty = np.linspace(0, img.shape[0] - 1, img.shape[0])
@@ -232,6 +226,10 @@ class Utils:
         leftx_base = np.argmax(histogram[:midpoint])
         # find the mas of the histogram to the right of the midpoint
         rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+        # print(leftx_base)
+        # print(rightx_base)
+        # plt.plot(histogram)
+        # plt.show()
 
         # Current positions to be updated for each window
         leftx_current = leftx_base
@@ -327,7 +325,3 @@ class Utils:
         offset = abs(xmidpoint - midpoint) * self.xm_per_pixel
 
         return offset
-
-    def running_mean(x, N):
-        cumsum = np.cumsum(np.insert(x, 0, 0))
-        return (cumsum[N:] - cumsum[:-N]) / N

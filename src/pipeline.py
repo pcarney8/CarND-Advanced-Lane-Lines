@@ -12,7 +12,7 @@ class Pipeline:
     def __init__(self):
         self.utils = Utils()
 
-    def run(self, image, right_line, left_line):
+    def run(self, image, left_line, right_line):
         # undistort image
         undistorted_img = cv2.undistort(image, self.utils.mtx, self.utils.dist, None, self.utils.mtx)
 
@@ -20,8 +20,7 @@ class Pipeline:
         binary_img = self.utils.create_threshold_binary(undistorted_img)
 
         # warp image perspective, and get the inverse (for plotting later)
-        top_down, perspective_M = self.utils.warp(binary_img)
-        inverse_img, Minv = self.utils.warp(binary_img, True)
+        top_down, Minv = self.utils.warp(binary_img)
 
         # window margin
         margin = 100
@@ -50,6 +49,7 @@ class Pipeline:
         # Figure out distance between the lines
         avg_distance_between_lines = np.asscalar((np.mean(np.absolute(left_fitx - right_fitx)) * (3.7/700.)))
 
+        # print('avg distance between lines', avg_distance_between_lines)
         distance_bool = False
         similar_A = False
         similar_B = False
@@ -63,17 +63,13 @@ class Pipeline:
 
         # Figure out if it's similar curve
         similar_curve = np.absolute(left_fit - right_fit)
-        if 0. < similar_curve[0] < 1.:
-            # print('A : ', similar_curve[0])
-            # print('simlar A coefficient')
+        if 0. < similar_curve[0] < 0.2:
             similar_A = True
         else:
             print('fail, not similar')
             similar_A = False
 
-        if 0. < similar_curve[1] < 1.:
-            # print('B : ', similar_curve[1])
-            # print('similar B coefficient')
+        if 0. < similar_curve[1] < 0.5:
             similar_B = True
         else:
             print('fail, not similar')
@@ -91,16 +87,10 @@ class Pipeline:
             left_line.recent_poly.append(left_fit)
             right_line.recent_poly.append(right_fit)
 
-            left_line.best_fit = np.mean(left_line.recent_poly, axis=0)
-            right_line.best_fit = np.mean(right_line.recent_poly, axis=0)
-
-            left_line.bestx = np.mean(left_line.recent_xfitted, axis=0)
-            right_line.bestx = np.mean(right_line.recent_xfitted, axis=0)
-
-            right_line.allx = right_fitx
-            right_line.ally = ploty
             left_line.allx = left_fitx
             left_line.ally = ploty
+            right_line.allx = right_fitx
+            right_line.ally = ploty
 
             left_line.radius_of_curvature = left_radius_curvature
             right_line.radius_of_curvature = right_radius_curvature
@@ -123,6 +113,12 @@ class Pipeline:
             left_line.detected = False
             right_line.detected = False
 
+        left_line.best_fit = np.mean(left_line.recent_poly, axis=0)
+        right_line.best_fit = np.mean(right_line.recent_poly, axis=0)
+
+        left_line.bestx = np.mean(left_line.recent_xfitted, axis=0)
+        right_line.bestx = np.mean(right_line.recent_xfitted, axis=0)
+
         # Create an image to draw the lines on
         warp_zero = np.zeros_like(top_down).astype(np.uint8)
         color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
@@ -138,7 +134,6 @@ class Pipeline:
         # Warp the blank back to original image space using inverse perspective matrix (Minv)
         newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0]))
         # Combine the result with the original image
-        # TODO: should this be the undistorted image or the raw one?
         result = cv2.addWeighted(undistorted_img, 1, newwarp, 0.3, 0)
 
 
@@ -165,4 +160,4 @@ class Pipeline:
         # diagScreen[840:1080, 320:640] = cv2.resize(diag6, (320,240), interpolation=cv2.INTER_AREA)
         # diagScreen[840:1080, 640:960] = cv2.resize(diag9, (320,240), interpolation=cv2.INTER_AREA)
         # diagScreen[840:1080, 960:1280] = cv2.resize(diag8, (320,240), interpolation=cv2.INTER_AREA)
-        return left_line, right_line, diagScreen
+        return left_line, right_line, result

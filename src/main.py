@@ -32,7 +32,7 @@ lost_frame = 0
 #     else:
 #         lost_frame = 0
 #
-#     print('lost_frame:', lost_frame, 'offset:', left_line.line_base_pos, 'left radius:', left_line.radius_of_curvature, 'right radius:', right_line.radius_of_curvature)
+#     # print('lost_frame:', lost_frame, 'offset:', left_line.line_base_pos, 'left radius:', left_line.radius_of_curvature, 'right radius:', right_line.radius_of_curvature)
 #
 #     if lost_frame < max_lost_frames:
 #         left_line.detected = True
@@ -59,7 +59,11 @@ while video.isOpened():
     else:
         lost_frame = 0
 
-    print('lost_frame:', lost_frame, 'offset:', left_line.line_base_pos, 'left radius:', left_line.radius_of_curvature, 'right radius:', right_line.radius_of_curvature)
+    print('lost_frame:', lost_frame,
+          'offset:', left_line.line_base_pos,
+          'left radius:', left_line.radius_of_curvature,
+          'right radius:', right_line.radius_of_curvature
+          )
 
     if lost_frame < max_lost_frames:
         left_line.detected = True
@@ -76,10 +80,3 @@ while video.isOpened():
 
 video.release()
 cv2.destroyAllWindows()
-
-# Fit a second order polynomial to each
-# with warnings.catch_warnings():
-#     try:
-#         left_fit, right_fit = utils.find_lanes_with_fit(img, left_fit, right_fit, margin)
-#     except (np.RankWarning, UnboundLocalError):
-#         left_fit, right_fit = utils.find_lanes_with_rectangle(img, margin)

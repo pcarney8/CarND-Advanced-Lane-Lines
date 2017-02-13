@@ -1,5 +1,4 @@
-##Writeup Template
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+##Writeup
 
 ---
 
@@ -18,13 +17,15 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[image1]: ./output_images/undistorted-images/calibration1.jpg "Undistorted"
+[image2]: ./camera_cal/calibration1.jpg "Normal"
+[image3]: ./test_images/test1.jpg "Road Transformed"
+[image4]: ./output_images/threshold-images/color_and_gradient_threshold.png "Binary Example"
+[image5]: ./output_images/threshold-images/warped.png "Warp Example"
+[image6]: ./output_images/threshold-images/curve_with_polynomial.png "Fit Visual"
+[image7]: ./output_images/threshold-images/output.jpg "Output"
+[image8]: ./output_images/threshold-images/histogram.png "Histogram"
+[video1]: ./output_project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 ###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
