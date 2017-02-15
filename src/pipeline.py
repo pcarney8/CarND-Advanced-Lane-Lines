@@ -168,6 +168,9 @@ class Pipeline:
         # Combine the result with the original image
         result = cv2.addWeighted(undistorted_img, 1, newwarp, 0.3, 0)
 
+        cv2.putText(result, "Radius of Curvature: " + str(left_line.radius_of_curvature) + "m", (0, 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, 255)
+        cv2.putText(result, "Offset: " + str(left_line.line_base_pos) + "m", (0, 100), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, 255)
+
         # DEBUGGING: Diagnostic screen for looking at various views at once
         # middle panel text example
         # using cv2 for drawing text in diagnostic pipeline.
